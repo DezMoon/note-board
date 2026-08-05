@@ -4,10 +4,12 @@ Build `<note-board>`: a small board of rich-text notes that can be created, edit
 drag-and-drop, and are loaded/saved against a mocked API. Think "mini Trello card list with a rich text
 editor inside each card," built the way we'd actually build it.
 
-**Lit web components +
-strict TypeScript**, `@lit/context`/`@lit/task` for state, TipTap for rich text, and Vitest + Cypress for
-testing. It is designed to take a competent mid/senior candidate **3–5 focused hours**. Partial,
-well-reasoned work beats a rushed full solution.
+This scaffold mirrors our real frontend stack — **Lit web components + strict TypeScript**, no framework,
+with `@lit/context` for shared state and MSW for API mocking. You choose the libraries you use for each
+piece of functionality and explain your choices in the PR. It is not meant to be "completed perfectly" —
+partial, well-reasoned work beats a rushed full solution.
+
+**Log the time you spend** (per feature or per session) and include the record in your PR description.
 
 **Read [`CHALLENGE.md`](./CHALLENGE.md) for the full brief.** Everything below is how to use this scaffold.
 
@@ -19,7 +21,7 @@ Requires Node >= 22.12 and npm.
 
 ```sh
 npm install        # install dependencies
-npm run dev        # Vite dev server → http://localhost:5173 (MSW is live, /api/notes is mocked)
+npm run dev        # Vite dev server → http://localhost:5173 (MSW is live in dev)
 npm run test       # Vitest unit tests
 npm run test:e2e   # Cypress component tests (headless)
 npm run test:e2e:open  # Cypress component tests (interactive)
@@ -37,26 +39,23 @@ Everything you implement goes in **`src/note-board/`** (currently empty apart fr
 starting points for the structure: `note-board.ts`, `note-card.ts`, a context store, and `types.ts` (the
 type contract lives in [`src/note-board/README.md`](./src/note-board/README.md) — do not change it).
 
-## Stack
+## Required stack
 
 - **Lit 3** web components, shadow DOM + scoped `static styles` (no framework)
 - **TypeScript 6, strict** — see `tsconfig.json`; no `any`, no `@ts-ignore`, no unexplained casts
-- **`@lit/context`** for shared state, **`@lit/task`** for the async load lifecycle, **`@open-wc/lit-helpers`**
-- **TipTap 3** (`starter-kit`, `placeholder`, `link`) installed but **not wired up** — you wire it
-- **sortablejs** (with types) installed but **not wired up** — you wire it
-- **dompurify** for sanitizing editor output before persist/render
-- **MSW** (mock service worker), **Vitest 4**, **Cypress 15** (component testing), **Storybook 10**
+- **`@lit/context`** for shared state
+- **MSW** for API mocking (handlers live in `src/mocks/`; registered in Vitest via `test/setup.ts` and in
+  dev via `src/main.ts`)
 
-## Mock API
+## Your choices
 
-`/api/notes` (GET / POST / PATCH / DELETE) is mocked with MSW in `src/mocks/`:
+The following are pre-installed for you, but using them is **your call** — pick what you need for each
+functionality and justify your choices in the PR:
 
-- Handlers: `src/mocks/handlers.ts` (shared by every environment)
-- Browser worker: `src/mocks/browser.ts` — started automatically in `npm run dev` (`src/main.ts`)
-- Node server: `src/mocks/node.ts` — registered in Vitest via `test/setup.ts`
-
-Behaviour: realistic latency (250–600ms) and a ~15% chance of a 500 response, so error states are easy to
-exercise. The mock is in-memory; it resets when the page reloads or the process restarts.
+- **Rich text editing**: TipTap 3 (`starter-kit`, `placeholder`, `link`) is installed, or use another editor
+- **Drag-and-drop reorder**: `sortablejs` (+ types) is installed, or use another approach
+- **HTML sanitization**: `dompurify` is installed, or sanitize another way
+- Also available if useful: `@lit/task`, `@open-wc/lit-helpers`
 
 ## Testing conventions
 
@@ -64,11 +63,11 @@ exercise. The mock is in-memory; it resets when the page reloads or the process 
   mocking required; `happy-dom` is configured. See `test/example.test.ts` for the pattern.
 - **Cypress component tests** — `cy.mount()` from `cypress-lit` (see `cypress/component/smoke.cy.ts`).
   Two ways to mock the API in a CT test:
-  - **`cy.startMsw()`** — starts the MSW service worker before you mount, then the shared handlers serve
-    `/api/notes`. This is the "MSW mocking the API" flow from the brief.
+  - **`cy.startMsw()`** — starts the MSW service worker before you mount, so the shared handlers intercept
+    API requests. This is the "MSW mocking the API" flow from the brief.
   - **`cy.intercept()`** — the pattern used for component tests in our production codebase; useful for
     per-test overrides.
-- Tests must be deterministic — no arbitrary `setTimeout` waits; use `@lit/task` state, Cypress
+- Tests must be deterministic — no arbitrary `setTimeout` waits; use async task state, Cypress
   retry-ability, and MSW.
 
 ## Storybook
@@ -98,10 +97,10 @@ cypress/
 
 - **Can I restructure the given type contract?** Only additively (extra optional fields, extra types).
   Don't remove/rename the given shape — it's there so submissions can be compared consistently.
+- **Must I use TipTap, sortablejs, or dompurify?** No — they're pre-installed options. Pick what you need
+  for each feature and justify your choices in the PR.
 - **Can I add extra libraries?** Small, justified additions are fine (e.g., a tiny date formatter) —
   explain why in the PR. Don't add a state management framework or another component framework; the point
   is to see how you use Lit/`@lit/context` directly.
-- **Do I need every TipTap extension from the real stack?** No — `starter-kit` + `placeholder` + `link`
-  is sufficient for this exercise.
 - **What if I run out of time?** Push what you have, note what's missing/rough in the PR description, and
   stop. Honest incomplete work beats something padded out or rushed into a broken state.

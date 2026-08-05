@@ -24,8 +24,3 @@ export interface NotesApi {
 
 The contract may only be extended additively (extra optional fields, extra types). Do not remove or rename
 the given shape.
-
-## Mock API
-
-`/api/notes` (GET / POST / PATCH / DELETE) is mocked with MSW in `src/mocks/`. See the root
-`README.md` for the endpoint behaviour (realistic latency, occasional 500s) and how tests can override it.
