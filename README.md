@@ -35,9 +35,8 @@ All of these work out of the box on the scaffold.
 
 ## Where the work happens
 
-Everything you implement goes in **`src/note-board/`** (currently empty apart from a README stub). Good
-starting points for the structure: `note-board.ts`, `note-card.ts`, a context store, and `types.ts` (the
-type contract lives in [`src/note-board/README.md`](./src/note-board/README.md) — do not change it).
+Everything you implement goes in **`src/note-board/`** (currently empty apart from a README stub). The
+type contract lives in [`src/note-board/README.md`](./src/note-board/README.md) — do not change it.
 
 ## Required stack
 
