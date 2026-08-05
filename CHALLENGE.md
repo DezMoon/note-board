@@ -2,7 +2,7 @@
 
 ## 1. Context
 
-This challenge mirrors our real frontend stack — the one used for our no-code platform: **Lit web
+**Lit web
 components + strict TypeScript**, no framework, with `@lit/context` for shared state and MSW for API
 mocking. You choose the libraries you use for each piece of functionality and explain your choices in the
 PR. It is not meant to be "completed perfectly" — partial, well-reasoned work beats a rushed full solution.
