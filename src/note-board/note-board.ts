@@ -4,12 +4,13 @@ import { customElement, property, state } from 'lit/decorators.js'
 import {notesApi} from './notes-api'
 import { sortNotesByOrder } from './reorder-notes'
 import type { Note, NotesApi } from './types'
+import './note-card'
 
 @customElement('note-board')
 export class NoteBoard extends LitElement {
     static override styles = css`
         :host {
-        display: block
+        display: block;
         max-width: 800px;
         margin: auto;
         padding: 1rem;
@@ -29,8 +30,7 @@ export class NoteBoard extends LitElement {
         }
 
         li {
-        border: 1px solid #ccc;
-        padding: 1rem;
+        display: block;
         }
 
         .message {
@@ -76,8 +76,7 @@ export class NoteBoard extends LitElement {
         ${this.notes.map(
           (note) => html`
             <li>
-              <h2>${note.title}</h2>
-              <p>${note.bodyHtml}</p>
+                <note-card .note=${note}></note-card>
             </li>
           `,
         )}
