@@ -145,18 +145,24 @@ candidates; there's no penalty for skipping them, but thoughtful bonus work is a
 
 ## 8. Submission instructions
 
-1. Open a **draft PR immediately** — this lets you push incrementally, which is preferred over one giant
-   commit at the end.
-2. Commit incrementally with meaningful messages. Your git history is read, not just the final diff — it
+You'll submit via the standard fork → branch → PR workflow. You won't be added as a collaborator, so
+everything below happens in **your own fork**:
+
+1. **Fork** this repository to your GitHub account and clone your fork locally.
+2. Create a **branch** in your fork for your work.
+3. Open a **draft PR immediately** (from your fork's branch to this repo's `main`) — this lets you push
+   incrementally, which is preferred over one giant commit at the end. GitHub lets you open a draft PR even
+   before any code is pushed.
+4. Commit incrementally with meaningful messages. Your git history is read, not just the final diff — it
    shows how you work.
-3. In the PR description, include:
+5. In the PR description, include:
    - What you built vs. skipped, and why
    - Your library choices (rich text, drag-and-drop, sanitization, and anything else) and why
    - A running log of the time you spent
    - Any tradeoffs you made under time pressure
    - Which bonus item(s), if any, you attempted
    - How to run it locally (should already work with the scaffold's scripts, but confirm)
-4. Mark the PR "Ready for review" when done.
+6. Mark the PR "Ready for review" when done.
 
 ## 9. AI usage policy
 
