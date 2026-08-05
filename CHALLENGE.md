@@ -2,13 +2,11 @@
 
 ## 1. Context
 
-This challenge mirrors our real frontend stack — the one used for our no-code platform: **Lit web
+**Lit web
 components + strict TypeScript**, no framework, with `@lit/context`/`@lit/task` for state, TipTap for rich
 text, and Vitest + Cypress for testing. It's designed to take a competent mid/senior candidate **3–5
 focused hours**. It is not meant to be "completed perfectly" — partial, well-reasoned work beats a rushed
 full solution.
-
-You have **7 days** from receiving repo access to open a PR. If you need more time, just ask.
 
 ---
 
