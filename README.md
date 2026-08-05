@@ -4,12 +4,10 @@ Build `<note-board>`: a small board of rich-text notes that can be created, edit
 drag-and-drop, and are loaded/saved against a mocked API. Think "mini Trello card list with a rich text
 editor inside each card," built the way we'd actually build it.
 
-This scaffold mirrors the real frontend stack used for our no-code platform: **Lit web components +
+**Lit web components +
 strict TypeScript**, `@lit/context`/`@lit/task` for state, TipTap for rich text, and Vitest + Cypress for
 testing. It is designed to take a competent mid/senior candidate **3–5 focused hours**. Partial,
 well-reasoned work beats a rushed full solution.
-
-You have **7 days** from receiving repo access to open a PR. If you need more time, just ask.
 
 **Read [`CHALLENGE.md`](./CHALLENGE.md) for the full brief.** Everything below is how to use this scaffold.
 
