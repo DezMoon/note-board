@@ -23,15 +23,15 @@ export class NoteBoard extends LitElement {
       gap: 1.25rem;
     }
     .card-wrapper {
-      transition: transform 0.2s ease, opacity 0.2s ease;
       border-radius: 8px;
-    }
-    .card-wrapper.drag-over {
-      outline: 2px dashed #007bff;
-      outline-offset: 4px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      touch-action: none;
     }
     .card-wrapper.dragging {
-      opacity: 0.4;
+      opacity: 0.5;
+      transform: scale(0.98);
+      outline: 2px dashed #007bff;
+      outline-offset: 4px;
     }
     .loading, .error {
       padding: 2rem;
@@ -52,8 +52,8 @@ export class NoteBoard extends LitElement {
   `;
 
   @state() private notes: Note[] = [];
-  @state() private draggedIndex: number | null = null;
-  @state() private dragOverIndex: number | null = null;
+  @state() private activeDragIndex: number | null = null;
+  private activePointerId: number | null = null;
 
   @provide({ context: notesContext })
   private contextValue: NotesContextValue = {
@@ -120,23 +120,24 @@ export class NoteBoard extends LitElement {
   }
 
   private async handleReorder(oldIndex: number, newIndex: number) {
-    if (oldIndex === newIndex) return;
+    if (oldIndex === newIndex || oldIndex < 0 || newIndex < 0) return;
 
-    const reordered = [...this.notes];
-    const [movedNote] = reordered.splice(oldIndex, 1);
-    reordered.splice(newIndex, 0, movedNote);
+    this.swapNotesRealtime(oldIndex, newIndex);
+    await this.persistOrder();
+  }
 
-    const updatedNotes = reordered.map((note, idx) => ({
-      ...note,
-      order: idx + 1,
-    }));
+  private swapNotesRealtime(fromIndex: number, toIndex: number) {
+    const updated = [...this.notes];
+    const [movedNote] = updated.splice(fromIndex, 1);
+    if (!movedNote) return;
 
-    // Optimistically update UI
-    this.notes = updatedNotes;
+    updated.splice(toIndex, 0, movedNote);
+    this.notes = updated.map((note, idx) => ({ ...note, order: idx + 1 }));
+  }
 
-    // Persist position changes to the API
+  private async persistOrder() {
     await Promise.all(
-      updatedNotes.map((note) =>
+      this.notes.map((note) =>
         fetch(`/api/notes/${note.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -146,43 +147,52 @@ export class NoteBoard extends LitElement {
     );
   }
 
-  // --- Drag and Drop Handlers ---
-  private handleDragStart(e: DragEvent, index: number) {
-    this.draggedIndex = index;
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', index.toString());
+  // --- Real-time Pointer Event Drag Handlers ---
+  private handleNoteDragStart(e: CustomEvent, index: number) {
+    const pointerEvent = e.detail.pointerEvent as PointerEvent;
+    const cardWrapper = (e.target as HTMLElement).closest('.card-wrapper') as HTMLElement;
+
+    if (!cardWrapper) return;
+
+    this.activeDragIndex = index;
+    this.activePointerId = pointerEvent.pointerId;
+
+    try {
+      cardWrapper.setPointerCapture(pointerEvent.pointerId);
+    } catch (_) {}
+  }
+
+  private handlePointerMove(e: PointerEvent) {
+    if (this.activeDragIndex === null) return;
+
+    const elements = this.shadowRoot?.elementsFromPoint(e.clientX, e.clientY) || [];
+    const targetWrapper = elements.find((el) =>
+      el.classList.contains('card-wrapper')
+    ) as HTMLElement | undefined;
+
+    if (targetWrapper && targetWrapper.dataset.index !== undefined) {
+      const hoverIndex = parseInt(targetWrapper.dataset.index, 10);
+      if (!isNaN(hoverIndex) && hoverIndex !== this.activeDragIndex) {
+        this.swapNotesRealtime(this.activeDragIndex, hoverIndex);
+        this.activeDragIndex = hoverIndex;
+      }
     }
   }
 
-  private handleDragOver(e: DragEvent, index: number) {
-    e.preventDefault(); // Necessary to allow dropping
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = 'move';
-    }
-    if (this.dragOverIndex !== index) {
-      this.dragOverIndex = index;
-    }
-  }
+  private async handlePointerUp(e: PointerEvent) {
+    if (this.activeDragIndex === null) return;
 
-  private handleDragLeave(index: number) {
-    if (this.dragOverIndex === index) {
-      this.dragOverIndex = null;
+    const targetWrapper = (e.currentTarget as HTMLElement);
+    if (targetWrapper && this.activePointerId !== null) {
+      try {
+        targetWrapper.releasePointerCapture(this.activePointerId);
+      } catch (_) {}
     }
-  }
 
-  private handleDrop(e: DragEvent, index: number) {
-    e.preventDefault();
-    if (this.draggedIndex !== null && this.draggedIndex !== index) {
-      this.handleReorder(this.draggedIndex, index);
-    }
-    this.draggedIndex = null;
-    this.dragOverIndex = null;
-  }
+    this.activeDragIndex = null;
+    this.activePointerId = null;
 
-  private handleDragEnd() {
-    this.draggedIndex = null;
-    this.dragOverIndex = null;
+    await this.persistOrder();
   }
 
   override render() {
@@ -195,8 +205,10 @@ export class NoteBoard extends LitElement {
         </div>
       `,
       complete: (fetchedNotes) => {
-        this.notes = fetchedNotes;
-        this.contextValue = { ...this.contextValue, notes: fetchedNotes, loading: false };
+        if (this.activeDragIndex === null) {
+          this.notes = fetchedNotes;
+        }
+        this.contextValue = { ...this.contextValue, notes: this.notes, loading: false };
 
         return html`
           <header>
@@ -211,15 +223,16 @@ export class NoteBoard extends LitElement {
               : this.notes.map(
                   (note, index) => html`
                     <div
-                      class="card-wrapper ${this.draggedIndex === index ? 'dragging' : ''} ${this.dragOverIndex === index ? 'drag-over' : ''}"
-                      draggable="true"
-                      @dragstart=${(e: DragEvent) => this.handleDragStart(e, index)}
-                      @dragover=${(e: DragEvent) => this.handleDragOver(e, index)}
-                      @dragleave=${() => this.handleDragLeave(index)}
-                      @drop=${(e: DragEvent) => this.handleDrop(e, index)}
-                      @dragend=${this.handleDragEnd}
+                      class="card-wrapper ${this.activeDragIndex === index ? 'dragging' : ''}"
+                      data-index="${index}"
+                      @pointermove=${this.handlePointerMove}
+                      @pointerup=${this.handlePointerUp}
+                      @pointercancel=${this.handlePointerUp}
                     >
-                      <note-card .note=${note}></note-card>
+                      <note-card
+                        .note=${note}
+                        @note-drag-start=${(e: CustomEvent) => this.handleNoteDragStart(e, index)}
+                      ></note-card>
                     </div>
                   `
                 )}
