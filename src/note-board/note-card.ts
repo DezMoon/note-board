@@ -12,6 +12,11 @@ export class NoteCard extends LitElement {
   static override styles = css`
     :host {
       display: block;
+      cursor: grab;
+      user-select: none;
+    }
+    :host(:active) {
+      cursor: grabbing;
     }
     .card {
       background: #ffffff;
@@ -19,10 +24,11 @@ export class NoteCard extends LitElement {
       border: 1px solid #e0e0e0;
       border-radius: 8px;
       padding: 1rem;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
     .header h3 {
       margin: 0;
@@ -33,17 +39,23 @@ export class NoteCard extends LitElement {
       color: #4a4a4a;
       line-height: 1.5;
     }
+    /* Explicitly force edit mode text and background color to black/white */
     .editor-container {
       border: 1px solid #ccc;
       border-radius: 4px;
       padding: 0.5rem;
       min-height: 100px;
-      background: #fff;
-      color: #000;
+      background: #ffffff;
+      color: #000000;
     }
     .editor-container .ProseMirror {
       outline: none;
       min-height: 80px;
+      color: #000000 !important;
+    }
+    .editor-container .ProseMirror p {
+      color: #000000 !important;
+      margin: 0.25rem 0;
     }
     .actions {
       display: flex;
@@ -56,6 +68,7 @@ export class NoteCard extends LitElement {
       border-radius: 4px;
       border: 1px solid #ccc;
       background: #f8f9fa;
+      color: #333333;
       font-size: 0.9rem;
     }
     button.delete {
