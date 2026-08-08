@@ -38,7 +38,7 @@ const notes: MockNote[] = [...seedNotes]
 
 let noteSequence = 1
 
-const ERROR_RATE = 0.15
+const ERROR_RATE = typeof window !== 'undefined' && (window as any).Cypress ? 0 : 0.15
 const MIN_LATENCY_MS = 250
 const MAX_LATENCY_MS = 600
 

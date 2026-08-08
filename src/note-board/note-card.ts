@@ -1,7 +1,11 @@
 import { css, html, LitElement } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
-import DOMPurify from 'dompurify'
 import type { Note } from './types'
+import { Editor } from '@tiptap/core'
+import StarterKit from '@tiptap/starter-kit'
+import Placeholder from '@tiptap/extension-placeholder'
+import Link from '@tiptap/extension-link'
+import { sanitizeHtml } from './sanitizer'
 
 @customElement('note-card')
 export class NoteCard extends LitElement {
@@ -44,6 +48,7 @@ export class NoteCard extends LitElement {
   @state() private editing = false
   @state() private draftTitle = ''
   @state() private draftBody = ''
+  private editorInstance: Editor | null = null
 
   override connectedCallback(): void {
     super.connectedCallback()
@@ -61,7 +66,9 @@ export class NoteCard extends LitElement {
   }
 
   private async save() {
-    const clean = DOMPurify.sanitize(this.draftBody)
+    // ensure latest editor HTML is captured
+    if (this.editorInstance) this.draftBody = this.editorInstance.getHTML()
+    const clean = sanitizeHtml(this.draftBody)
     // Emit a custom event so parent/context can handle saving
     this.dispatchEvent(
       new CustomEvent('note-save', {
@@ -71,17 +78,40 @@ export class NoteCard extends LitElement {
       }),
     )
     this.editing = false
+    this.destroyEditor()
   }
 
   private cancel() {
     this.editing = false
     this.resetDraft()
+    this.destroyEditor()
   }
 
   private handleDelete() {
     this.dispatchEvent(
       new CustomEvent('note-delete', { detail: { id: this.note.id }, bubbles: true, composed: true }),
     )
+  }
+
+  private createEditor() {
+    const container = this.renderRoot.querySelector('.tiptap') as HTMLElement | null
+    if (!container) return
+
+    this.editorInstance = new Editor({
+      element: container,
+      content: this.draftBody,
+      extensions: [StarterKit, Placeholder.configure({ placeholder: 'Write something...' }), Link],
+      onUpdate: ({ editor }) => {
+        this.draftBody = editor.getHTML()
+      },
+    })
+  }
+
+  private destroyEditor() {
+    if (this.editorInstance) {
+      this.editorInstance.destroy()
+      this.editorInstance = null
+    }
   }
 
   protected override render() {
@@ -92,7 +122,7 @@ export class NoteCard extends LitElement {
     return html`
       <div>
         <h3 class="title">${this.note.title}</h3>
-        <div class="body" .innerHTML=${DOMPurify.sanitize(this.note.bodyHtml)}></div>
+        <div class="body" .innerHTML=${sanitizeHtml(this.note.bodyHtml)}></div>
         <div class="controls">
           <button @click=${() => this.enterEdit()}>Edit</button>
           <button @click=${() => this.handleDelete()}>Delete</button>
@@ -114,11 +144,7 @@ export class NoteCard extends LitElement {
 
         <label>
           Body
-          <textarea
-            .value=${this.draftBody}
-            @input=${(e: Event) => (this.draftBody = (e.target as HTMLTextAreaElement).value)}
-            rows="6"
-          ></textarea>
+          <div class="tiptap"></div>
         </label>
 
         <div class="controls">
@@ -127,6 +153,19 @@ export class NoteCard extends LitElement {
         </div>
       </div>
     `
+  }
+
+  protected override updated(changedProps: Map<string, unknown>) {
+    super.updated(changedProps)
+    if (changedProps.has('editing') && this.editing) {
+      // Rendered edit UI — create TipTap editor
+      this.createEditor()
+    }
+  }
+
+  override disconnectedCallback(): void {
+    this.destroyEditor()
+    super.disconnectedCallback()
   }
 }
 

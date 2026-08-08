@@ -1,9 +1,7 @@
 import createDOMPurify from 'dompurify'
-import { Window as HappyWindow } from 'happy-dom'
 
-// Use the existing global/window provided by the test environment (happy-dom/jsdom),
-// or fall back to creating a minimal happy-dom Window when running under Node.
-const windowLike = typeof window !== 'undefined' ? window : new HappyWindow()
+// Use the existing global/window provided by the runtime (browser or test env).
+const windowLike = typeof window !== 'undefined' ? window : (globalThis as any).window
 const DOMPurify = createDOMPurify(windowLike as any)
 
 export function sanitizeHtml(input: string): string {

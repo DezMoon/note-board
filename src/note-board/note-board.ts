@@ -3,6 +3,8 @@ import { customElement, state } from 'lit/decorators.js'
 import Sortable from 'sortablejs'
 
 import { notesApi } from './api'
+import { provide } from '@lit/context'
+import { noteBoardContext } from './context'
 import type { Note } from './types'
 import type { NoteBoardContextValue } from './context'
 
@@ -86,8 +88,21 @@ export class NoteBoard extends LitElement {
   @state() private isLoading = false
 
   private sortable: Sortable | undefined = undefined
-  private provider: { setValue: (v: NoteBoardContextValue) => void } = {
-    setValue: () => {},
+
+  @provide({ context: noteBoardContext })
+  private provider!: { setValue: (v: NoteBoardContextValue) => void }
+
+  override connectedCallback(): void {
+    super.connectedCallback()
+    // listen for child events from `note-card`
+    this.addEventListener('note-save', this.onNoteSave as EventListener)
+    this.addEventListener('note-delete', this.onNoteDelete as EventListener)
+  }
+
+  override disconnectedCallback(): void {
+    this.removeEventListener('note-save', this.onNoteSave as EventListener)
+    this.removeEventListener('note-delete', this.onNoteDelete as EventListener)
+    super.disconnectedCallback()
   }
 
   private readonly loadTask = new TaskController(this, {
@@ -110,8 +125,39 @@ export class NoteBoard extends LitElement {
   })
 
   protected override updated(): void {
-    this.provider.setValue(this.createContextValue())
+    if (this.provider && typeof (this.provider as any).setValue === 'function') {
+      this.provider.setValue(this.createContextValue())
+    }
     this.installSortable()
+  }
+
+  private onNoteSave = async (e: Event) => {
+    const detail = (e as CustomEvent).detail
+    if (!detail || !detail.id) return
+    try {
+      await this.createContextValue().updateNote(detail.id, {
+        title: detail.title,
+        bodyHtml: detail.bodyHtml,
+      })
+      if (this.provider && typeof (this.provider as any).setValue === 'function') {
+        this.provider.setValue(this.createContextValue())
+      }
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : String(err)
+    }
+  }
+
+  private onNoteDelete = async (e: Event) => {
+    const detail = (e as CustomEvent).detail
+    if (!detail || !detail.id) return
+    try {
+      await this.createContextValue().deleteNote(detail.id)
+      if (this.provider && typeof (this.provider as any).setValue === 'function') {
+        this.provider.setValue(this.createContextValue())
+      }
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : String(err)
+    }
   }
 
   private createContextValue(): NoteBoardContextValue {
@@ -122,10 +168,15 @@ export class NoteBoard extends LitElement {
       error: this.error,
       loadNotes: () => this.loadTask.run(),
       createNote: async (input) => {
-        const created = await notesApi.create(input)
-        this.notes = [...this.notes, created].sort((a, b) => a.order - b.order)
-        this.selectedNoteId = created.id
-        return created
+        try {
+          const created = await notesApi.create(input)
+          this.notes = [...this.notes, created].sort((a, b) => a.order - b.order)
+          this.selectedNoteId = created.id
+          return created
+        } catch (err) {
+          this.error = err instanceof Error ? err.message : String(err)
+          return Promise.reject(err)
+        }
       },
       updateNote: async (id, patch) => {
         const updated = await notesApi.update(id, patch)
@@ -216,10 +267,13 @@ export class NoteBoard extends LitElement {
   }
 
   private handleAddNote() {
-    this.createContextValue().createNote({
-      title: 'New note',
-      bodyHtml: '<p></p>',
-    })
+    // swallow errors here to avoid unhandled promise rejections; UI shows errors via `this.error`
+    this.createContextValue()
+      .createNote({
+        title: 'New note',
+        bodyHtml: '<p></p>',
+      })
+      .catch(() => {})
   }
 
   protected override render() {
