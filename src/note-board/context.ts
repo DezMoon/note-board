@@ -3,10 +3,10 @@ import type { Note } from './types'
 
 export interface NoteBoardContextValue {
   notes: Note[]
-  selectedNoteId?: string
+  selectedNoteId: string | undefined
   isLoading: boolean
   error: string | null
-  loadNotes: () => Promise<void>
+  loadNotes: () => Promise<Note[]>
   createNote: (input: Pick<Note, 'title' | 'bodyHtml'>) => Promise<Note>
   updateNote: (
     id: string,
